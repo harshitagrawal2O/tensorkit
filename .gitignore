@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+build/
+dist/
+*.egg-info/
+
+# Environments
+.venv/
+venv/
+.env
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+coverage.xml
+junit*.xml
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Datasets and checkpoints: regenerable, never committed
+data/
+runs/
+checkpoints/
+*.ckpt
+*.npz
+*.idx3-ubyte
+*.idx1-ubyte
+*.gz
+
+# On-disk databases and logs
+*.vfdb
+*.wal
+*.vfidx
+_crashtest/
+
+# Benchmark raw output. BENCHMARKS.md tables ARE committed; the raw JSON is not.
+benchmarks/results/
+*.bench.json
+*.prof

@@ -1,0 +1,32 @@
+name: Specification defect
+description: A test or an invariant is wrong, contradictory, or unsatisfiable
+title: "[SPEC] "
+labels: ["spec-defect"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        These are among the most valuable reports this project receives. Several tests have
+        already been corrected this way — including one that was arithmetically impossible to
+        satisfy, and one that contradicted RFC 9112.
+  - type: input
+    id: invariant
+    attributes:
+      label: Which invariant or test
+      placeholder: "I-BP-WAL, or tests/test_page.py::test_a_record_of_exactly_max_cell_size_fits"
+    validations:
+      required: true
+  - type: textarea
+    id: contradiction
+    attributes:
+      label: Why it cannot be satisfied
+      description: >
+        Show the reasoning. If it is arithmetic, do the arithmetic. If it contradicts another
+        test or a standard, name the other test or cite the standard.
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: What you think the fix is
+      description: Which of the two conflicting artefacts you believe is correct, and why.

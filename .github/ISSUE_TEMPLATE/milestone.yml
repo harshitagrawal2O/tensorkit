@@ -1,0 +1,40 @@
+name: Milestone claim
+description: Claim a milestone to implement
+title: "[M?] "
+labels: ["milestone", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One person per milestone at a time. If a claim goes quiet for two weeks it is fair game
+        again — say so in the thread and take it.
+  - type: input
+    id: milestone
+    attributes:
+      label: Which milestone
+      description: See SPEC.md section 4.
+      placeholder: "M4 — Module system and the core layers"
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: How you plan to approach it
+      description: >
+        A couple of sentences is plenty. Mostly this is here so a reviewer can flag a dead end
+        before you spend a weekend in it.
+    validations:
+      required: true
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Ground rules
+      options:
+        - label: I have read SPEC.md section 4 for this milestone's definition of done
+          required: true
+        - label: >
+            I will not weaken a test to make it pass. If I think one is wrong I will open a
+            spec-defect issue instead.
+          required: true
+        - label: I will keep the existing docstrings and their invariant references
+          required: true
