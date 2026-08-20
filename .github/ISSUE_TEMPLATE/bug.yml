@@ -1,0 +1,31 @@
+name: Bug report
+description: Something behaves differently from how SPEC.md says it should
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What SPEC.md says should happen
+      description: Quote the invariant or the section, so the disagreement is precise.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: The smallest test or script that shows it.
+      render: python
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Python version and OS
+      placeholder: "3.12.4, Windows 11"
