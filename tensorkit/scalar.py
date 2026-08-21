@@ -10,11 +10,7 @@ Tests: ``tests/test_scalar_autograd.py``.
 
 from __future__ import annotations
 
-import math
 from collections.abc import Callable, Iterator
-from typing import cast
-
-from tensorkit import autograd
 
 __all__ = ["Value"]
 
@@ -61,15 +57,7 @@ class Value:
 
         Tests: tests/test_scalar_autograd.py::test_add_backward
         """
-        rhs = Value._coerce(other)
-        out = Value(self.data + rhs.data, (self, rhs), "+")
-
-        def _backward() -> None:
-            self.grad += out.grad
-            rhs.grad += out.grad
-
-        out._backward = _backward
-        return out
+        raise NotImplementedError("Milestone 1")
 
     def __mul__(self, other: Value | float) -> Value:
         """Return ``self * other``.
@@ -80,15 +68,7 @@ class Value:
 
         Tests: tests/test_scalar_autograd.py::test_mul_backward
         """
-        rhs = Value._coerce(other)
-        out = Value(self.data * rhs.data, (self, rhs), "*")
-
-        def _backward() -> None:
-            self.grad += rhs.data * out.grad
-            rhs.grad += self.data * out.grad
-
-        out._backward = _backward
-        return out
+        raise NotImplementedError("Milestone 1")
 
     def __pow__(self, other: float) -> Value:
         """Return ``self ** other`` for a constant exponent.
@@ -99,23 +79,7 @@ class Value:
 
         Tests: tests/test_scalar_autograd.py::test_pow_backward
         """
-        try:
-            exponent = float(other)
-        except TypeError as exc:
-            # A Value has no __float__, which is exactly the case being rejected.
-            raise TypeError(
-                f"the exponent of Value ** exponent must be a constant int or float, not "
-                f"{type(other).__name__}. A Value exponent also needs the "
-                f"d/dx (a ** x) = a ** x * ln(a) term, which this milestone does not "
-                f"implement -- and a silently missing term is worse than a refusal."
-            ) from exc
-        out = Value(self.data**exponent, (self,), f"**{exponent:g}")
-
-        def _backward() -> None:
-            self.grad += exponent * self.data ** (exponent - 1.0) * out.grad
-
-        out._backward = _backward
-        return out
+        raise NotImplementedError("Milestone 1")
 
     def relu(self) -> Value:
         """Return ``max(self, 0)``.
@@ -124,32 +88,16 @@ class Value:
         document it, and note in ``docs/concepts/gradcheck.md`` why the numerical check must
         probe away from the kink.
 
-        Convention here: the subgradient at 0 is **0**, so ``relu`` is treated as the map
-        ``x -> x * (x > 0)``. Any value in [0, 1] is a valid subgradient; 0 is what PyTorch
-        uses, and picking the same one keeps cross-checks against it meaningful.
-
         Tests: tests/test_scalar_autograd.py::test_relu_backward
         """
-        out = Value(self.data if self.data > 0.0 else 0.0, (self,), "relu")
-
-        def _backward() -> None:
-            self.grad += (1.0 if self.data > 0.0 else 0.0) * out.grad
-
-        out._backward = _backward
-        return out
+        raise NotImplementedError("Milestone 1")
 
     def exp(self) -> Value:
         """Return ``e ** self``. Local gradient: the output itself.
 
         Tests: tests/test_scalar_autograd.py::test_exp_backward
         """
-        out = Value(math.exp(self.data), (self,), "exp")
-
-        def _backward() -> None:
-            self.grad += out.data * out.grad
-
-        out._backward = _backward
-        return out
+        raise NotImplementedError("Milestone 1")
 
     def log(self) -> Value:
         """Return the natural log. Local gradient: ``1 / self``.
@@ -159,19 +107,7 @@ class Value:
 
         Tests: tests/test_scalar_autograd.py::test_log_backward
         """
-        if self.data <= 0.0:
-            raise ValueError(
-                f"log() is undefined for {self.data!r}: the domain is x > 0. Returning -inf or "
-                f"nan here would propagate through the first multiplication and destroy every "
-                f"gradient in the batch, far away from the mistake."
-            )
-        out = Value(math.log(self.data), (self,), "log")
-
-        def _backward() -> None:
-            self.grad += out.grad / self.data
-
-        out._backward = _backward
-        return out
+        raise NotImplementedError("Milestone 1")
 
     def tanh(self) -> Value:
         """Hyperbolic tangent. Local gradient: ``1 - out ** 2``, where ``out`` is the result.
@@ -181,13 +117,7 @@ class Value:
 
         Tests: tests/test_scalar_autograd.py::test_tanh_backward
         """
-        out = Value(math.tanh(self.data), (self,), "tanh")
-
-        def _backward() -> None:
-            self.grad += (1.0 - out.data * out.data) * out.grad
-
-        out._backward = _backward
-        return out
+        raise NotImplementedError("Milestone 1")
 
     # -- the graph walk ------------------------------------------------------
 
@@ -199,15 +129,9 @@ class Value:
 
         Complexity: O(V + E) time, O(V) space.
 
-        The algorithm itself lives in :func:`tensorkit.autograd.topological_order`, which is
-        shared with :class:`tensorkit.tensor.Tensor`: one sort, one set of tests, one place for
-        the cycle check to be right.
-
         Tests: tests/test_scalar_autograd.py::test_topological_order_is_iterative
         """
-        # The shared walk is typed against the structural GraphNode protocol; every node it can
-        # reach from a Value is a Value, because no operator here mixes node types.
-        return cast(list["Value"], autograd.topological_order(self))
+        raise NotImplementedError("Milestone 1")
 
     def backward(self) -> None:
         """Populate ``.grad`` on every node reachable from self.
@@ -226,14 +150,9 @@ class Value:
         This does **not** zero gradients first. Calling ``backward()`` twice accumulates, which
         is what gradient accumulation across microbatches needs. Document it; do not prevent it.
 
-        What a second call *does* reset is the intermediates: every non-leaf gradient is set to
-        0.0 before the walk, so each pass contributes exactly one copy of the derivative to the
-        leaves. Without that, a shared intermediate would carry the previous pass's total into
-        this one and the leaves would grow faster than linearly in the number of calls.
-
         Tests: tests/test_scalar_autograd.py::test_backward_visits_each_node_once
         """
-        autograd.backward(self)
+        raise NotImplementedError("Milestone 1")
 
     # -- derived operators ---------------------------------------------------
     # All expressible via the primitives above. Implement them that way rather than adding new
@@ -241,31 +160,31 @@ class Value:
 
     def __neg__(self) -> Value:
         """Return ``-self``."""
-        return self * -1.0
+        raise NotImplementedError("Milestone 1")
 
     def __radd__(self, other: float) -> Value:
         """Return ``other + self``."""
-        return self + other
+        raise NotImplementedError("Milestone 1")
 
     def __sub__(self, other: Value | float) -> Value:
         """Return ``self - other``."""
-        return self + (-Value._coerce(other))
+        raise NotImplementedError("Milestone 1")
 
     def __rsub__(self, other: float) -> Value:
         """Return ``other - self``."""
-        return (-self) + other
+        raise NotImplementedError("Milestone 1")
 
     def __rmul__(self, other: float) -> Value:
         """Return ``other * self``."""
-        return self * other
+        raise NotImplementedError("Milestone 1")
 
     def __truediv__(self, other: Value | float) -> Value:
         """Return ``self / other``."""
-        return self * Value._coerce(other) ** -1.0
+        raise NotImplementedError("Milestone 1")
 
     def __rtruediv__(self, other: float) -> Value:
         """Return ``other / self``."""
-        return Value._coerce(other) * self**-1.0
+        raise NotImplementedError("Milestone 1")
 
     def __iter__(self) -> Iterator[Value]:
         """Values are scalars and are deliberately not iterable."""

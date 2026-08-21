@@ -127,7 +127,7 @@ def _cmd_train_mnist(args: argparse.Namespace) -> int:
     """Train the MNIST CNN via the example script's entry point."""
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "examples"))
     try:
-        from train_mnist import run_training  # type: ignore[import-not-found]
+        from train_mnist import run_training
     except ImportError:
         log.error("examples/train_mnist.py not importable -- run from the repository root")
         return 2
@@ -155,7 +155,7 @@ def _cmd_bench(args: argparse.Namespace) -> int:
     """Run a benchmark suite from the benchmarks package."""
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
     try:
-        from benchmarks.run import run_suite  # type: ignore[import-not-found]
+        from benchmarks.run import run_suite
     except ImportError:
         log.error("benchmarks/run.py not found -- run from the repository root")
         return 2
