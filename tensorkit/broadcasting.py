@@ -43,9 +43,42 @@ def unbroadcast(grad: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
 
     Complexity: O(size of grad).
 
-    Tests: tests/test_broadcasting.py::test_property_shape_and_sum_are_preserved
+    Both steps are plain sums, which is the whole content of the adjoint identity
+    ``<broadcast(x), g> == <x, unbroadcast(g)>``: broadcasting is a linear map that copies, and
+    the adjoint of a copy is an add. ``tests/test_broadcasting.py`` asserts that identity
+    directly, which is a stronger statement than sum preservation and implies it.
+
+    Tests: tests/test_broadcasting.py::test_unbroadcast_shape_property
     """
-    raise NotImplementedError("Milestone 2")
+    if grad.shape == shape:
+        return grad
+
+    promoted = grad.ndim - len(shape)
+    if promoted < 0:
+        raise ValueError(
+            f"cannot unbroadcast a gradient of shape {grad.shape} to {shape}: the target has "
+            f"more axes than the gradient, so NumPy could never have broadcast it that way"
+        )
+
+    # 1. Rank promotion: the leading axes were inserted, so they sum away entirely.
+    if promoted:
+        grad = grad.sum(axis=tuple(range(promoted)))
+
+    # 2. Size-1 stretching: keepdims so the axis survives with extent 1, as the operand had it.
+    stretched = tuple(
+        axis
+        for axis, (got, want) in enumerate(zip(grad.shape, shape, strict=True))
+        if want == 1 and got != 1
+    )
+    if stretched:
+        grad = grad.sum(axis=stretched, keepdims=True)
+
+    if grad.shape != shape:
+        raise ValueError(
+            f"unbroadcast produced shape {grad.shape}, not the requested {shape}. The operand "
+            f"and the gradient were never broadcast-compatible (I-UB-SHAPE)."
+        )
+    return grad
 
 
 def broadcast_shapes_or_raise(a: tuple[int, ...], b: tuple[int, ...]) -> tuple[int, ...]:
@@ -60,4 +93,10 @@ def broadcast_shapes_or_raise(a: tuple[int, ...], b: tuple[int, ...]) -> tuple[i
 
     Tests: tests/test_broadcasting.py::test_incompatible_shapes_raise_readably
     """
-    raise NotImplementedError("Milestone 2")
+    try:
+        return tuple(np.broadcast_shapes(a, b))
+    except ValueError as exc:
+        raise ValueError(
+            f"operands could not be broadcast together: shapes {a} and {b}. NumPy aligns "
+            f"shapes from the right; every pair of extents must be equal or one of them 1."
+        ) from exc
