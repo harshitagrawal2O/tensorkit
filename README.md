@@ -170,8 +170,8 @@ stack built by hand.
 |---|---|
 | **TensorKit** *(here)* | Autograd engine and NN library |
 | [NanoLM](https://github.com/harshitagrawal2O/nanolm) | Transformer + BPE tokenizer — trains on this autograd |
-| [InferServe](https://github.com/harshitagrawal2O/inferserve) | Inference server — serves NanoLM |
-| [VectorForge](https://github.com/harshitagrawal2O/vectorforge) | Vector database — queries NanoLM through InferServe |
+| InferServe *(not public yet)* | Inference server — serves NanoLM |
+| VectorForge *(not public yet)* | Vector database — queries NanoLM through InferServe |
 
 `SPEC.md` section 6 freezes the surface NanoLM depends on.
 
