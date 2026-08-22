@@ -54,8 +54,9 @@ def unbroadcast(grad: np.ndarray, shape: tuple[int, ...]) -> np.ndarray:
 | 7 | Conv2d, pooling, im2col | DSA, convolution arithmetic, performance | ☐ |
 | 8 | MNIST CNN to >98%, end to end | Integration, experimental methodology | ☐ |
 
-**92/94 tests pass.** The two that do not are `softmax` and `log_softmax`, which belong to
-milestones 4 and 6.
+**96/98 tests pass.** The two that do not are `softmax` and `log_softmax`, which belong to
+milestones 4 and 6. Four of those tests were added after mutation testing showed the suite
+did not pin down what it claimed to — see the mutation-testing issue for the triage.
 
 **Nothing here trains a network yet.** There are no layers, no optimisers, and no MNIST run —
 those arrive at milestones 4 through 8, and they are unwritten. What works today is the engine

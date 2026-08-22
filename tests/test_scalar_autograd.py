@@ -155,6 +155,87 @@ def test_division_and_reflected_operators():
     I_ACCUM.close(b.grad, -6 / 9 + 2 - 12 / 9, rtol=1e-9, detail="__rtruediv__ term is -12/b^2")
 
 
+def test_radd_is_reached_and_correct():
+    """``float + Value`` goes through ``__radd__``, which nothing else here exercises.
+
+    Found by mutation testing: every binary-operator mutation of ``__radd__``'s body survived
+    the suite, which can only happen if no test reaches it. The reflected-operator test above
+    covers ``__rsub__`` and ``__rtruediv__`` but never puts a float on the left of a ``+``.
+
+    Addition is commutative, so a wrong ``__radd__`` is invisible in the forward value of a
+    symmetric expression -- it has to be asserted directly.
+    """
+    a = Value(4.0)
+    out = 10.0 + a
+
+    assert out.data == pytest.approx(14.0), "10.0 + Value(4.0) must be 14.0"
+    out.backward()
+    I_ACCUM.close(a.grad, 1.0, detail="d(c + a)/da is 1 for any constant c")
+
+
+def test_rsub_forward_value_not_only_its_gradient():
+    """``__rsub__`` is ``(-self) + other``, and only its *gradient* was ever asserted.
+
+    Mutating the ``+`` to ``-`` leaves the gradient at -1 either way, so the mutant survived.
+    The forward value is what distinguishes them: ``10 - 4`` is 6, while ``(-4) - 10`` is -14.
+    """
+    a = Value(4.0)
+    out = 10.0 - a
+
+    assert out.data == pytest.approx(6.0), "10.0 - Value(4.0) must be 6.0, not -14.0"
+    out.backward()
+    I_ACCUM.close(a.grad, -1.0, detail="d(c - a)/da is -1")
+
+
+def test_relu_subgradient_at_exactly_zero():
+    """The documented convention is that the subgradient at 0 is 0. Nothing tested it.
+
+    ``Value.relu``'s docstring states the convention and names this file as its test, but the
+    parametrisation only covered 2.5 and -2.5. At exactly 0 the forward value is 0.0 under
+    either ``>`` or ``>=``, so only the gradient separates them: ``>`` gives 0.0 and ``>=``
+    gives 1.0. Mutation testing flipped the comparison and nothing failed.
+
+    Any value in [0, 1] is a valid subgradient. The point is not that 0 is the only defensible
+    choice -- it is that the choice is written down, so it should be pinned down.
+    """
+    a = Value(0.0)
+    out = a.relu()
+    out.backward()
+
+    assert out.data == pytest.approx(0.0), "relu(0) is 0"
+    I_ACCUM.close(
+        a.grad, 0.0, detail="the documented subgradient at the kink is 0, matching PyTorch"
+    )
+
+
+def test_chain_rule_through_a_product_whose_output_grad_is_not_one():
+    """Every backward here was previously tested with an incoming gradient of exactly 1.0.
+
+    That is the single largest gap mutation testing found. When ``out.grad == 1.0``, the
+    expressions ``self.data * out.grad``, ``self.data / out.grad`` and ``self.data ** out.grad``
+    all agree, so mutating the multiply in *any* ``_backward`` survived: ``__mul__``, ``exp``,
+    ``tanh`` and ``relu`` were all affected.
+
+    Every product in the old suite was either the root of the graph or fed an addition, and
+    both hand a gradient of 1.0 to the multiply. Nesting the product inside a non-linear
+    operation is what makes the incoming gradient something else.
+
+    ``out = exp(a * b)`` with a=2, b=3:
+        out          = e^6
+        d(out)/d(ab) = e^6                  <- the incoming gradient, not 1
+        d(out)/da    = b * e^6 = 3 * e^6
+        d(out)/db    = a * e^6 = 2 * e^6
+    """
+    a, b = Value(2.0), Value(3.0)
+    out = (a * b).exp()
+    out.backward()
+
+    e6 = math.exp(6.0)
+    assert out.data == pytest.approx(e6)
+    I_ACCUM.close(a.grad, 3.0 * e6, rtol=1e-9, detail="d(e^(ab))/da is b*e^(ab), not b")
+    I_ACCUM.close(b.grad, 2.0 * e6, rtol=1e-9, detail="d(e^(ab))/db is a*e^(ab), not a")
+
+
 # ---------------------------------------------------------------------------
 # Graph semantics — the part that is actually hard
 # ---------------------------------------------------------------------------
