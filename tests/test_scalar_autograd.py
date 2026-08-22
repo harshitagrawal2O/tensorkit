@@ -236,6 +236,64 @@ def test_chain_rule_through_a_product_whose_output_grad_is_not_one():
     I_ACCUM.close(b.grad, 2.0 * e6, rtol=1e-9, detail="d(e^(ab))/db is a*e^(ab), not a")
 
 
+def test_unary_ops_receive_a_non_unit_incoming_gradient():
+    """The same gap as above, for the unary ops rather than the product.
+
+    ``(a * b).exp()`` fixes ``__mul__`` but leaves ``exp`` itself at the root of the graph, so
+    ``exp``'s own ``_backward`` still saw ``out.grad == 1.0``. A second mutation run confirmed
+    that: the ``__mul__`` mutants died and the ``exp`` ones did not. Each op needs to be a
+    non-root node at least once.
+
+    ``out = exp(a) * tanh(b)`` with a=0.5, b=0.3 gives both of them a non-unit incoming
+    gradient -- ``exp`` receives ``tanh(b)`` and ``tanh`` receives ``exp(a)``:
+
+        d(out)/da = e^a * tanh(b)
+        d(out)/db = e^a * (1 - tanh(b)^2)
+    """
+    a, b = Value(0.5), Value(0.3)
+    out = a.exp() * b.tanh()
+    out.backward()
+
+    ea, tb = math.exp(0.5), math.tanh(0.3)
+    assert out.data == pytest.approx(ea * tb)
+    I_ACCUM.close(a.grad, ea * tb, rtol=1e-9, detail="exp's incoming gradient is tanh(b), not 1")
+    I_ACCUM.close(
+        b.grad, ea * (1 - tb * tb), rtol=1e-9, detail="tanh's incoming gradient is exp(a), not 1"
+    )
+
+
+def test_log_receives_a_non_unit_incoming_gradient():
+    """``log`` needs the same treatment: a non-root position so ``out.grad != 1``.
+
+    ``out = log(a) * b`` with a=4, b=3:
+        d(out)/da = b / a = 0.75
+        d(out)/db = log(a) = ln 4
+    """
+    a, b = Value(4.0), Value(3.0)
+    out = a.log() * b
+    out.backward()
+
+    assert out.data == pytest.approx(math.log(4.0) * 3.0)
+    I_ACCUM.close(a.grad, 3.0 / 4.0, rtol=1e-9, detail="d(b*ln a)/da is b/a, not 1/a")
+    I_ACCUM.close(b.grad, math.log(4.0), rtol=1e-9, detail="d(b*ln a)/db is ln a")
+
+
+def test_log_accepts_values_between_zero_and_one():
+    """The domain guard is ``x <= 0``, and nothing pinned down *where* the boundary sits.
+
+    Every existing log test used either 4.0 (valid) or 0.0 and negatives (invalid), so mutating
+    the threshold from 0.0 up to 1.0 changed no outcome -- 4.0 still passes and 0.0 still raises.
+    A value inside (0, 1) is the only thing that separates the two thresholds, and ``log`` must
+    accept it: ``ln 0.5`` is a perfectly ordinary negative number.
+    """
+    a = Value(0.5)
+    out = a.log()
+    out.backward()
+
+    assert out.data == pytest.approx(math.log(0.5)), "ln 0.5 is valid and negative"
+    I_ACCUM.close(a.grad, 2.0, detail="d(ln x)/dx at x=0.5 is 1/0.5 = 2")
+
+
 # ---------------------------------------------------------------------------
 # Graph semantics — the part that is actually hard
 # ---------------------------------------------------------------------------
